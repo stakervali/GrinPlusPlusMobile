@@ -9,5 +9,7 @@
         public const string ACTION_RESTART_NODE = "GrinNodeService.action.RESTART_NODE";
         public const string ACTION_RESYNC_NODE = "GrinNodeService.action.RESYNC_NODE";
         public const string ACTION_MAIN_ACTIVITY = "GrinNodeService.action.MAIN_ACTIVITY";
-    }
+        public const string ACTION_DELETE_PEERS_FOLDER = "GrinNodeService.action.DELETE_PEERS_FOLDER";
+
+     }
 }

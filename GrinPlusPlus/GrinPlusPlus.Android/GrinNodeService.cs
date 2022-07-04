@@ -25,7 +25,7 @@ namespace GrinPlusPlus.Droid
 
         NotificationManager manager;
         bool channelInitialized = false;
-        
+
         public override IBinder OnBind(Intent intent)
         {
             return null;
@@ -44,11 +44,12 @@ namespace GrinPlusPlus.Droid
             {
                 InitializeNodeService();
 
-                if(NodeControl.IsNodeRunning())
+                if (NodeControl.IsNodeRunning())
                 {
                     RegisterForegroundService("Initializing Node...");
                     SetNodeTimer();
-                } else
+                }
+                else
                 {
                     RegisterForegroundService("Not Running");
                 }
@@ -69,7 +70,7 @@ namespace GrinPlusPlus.Droid
                 if (intent.Action.Equals(Constants.ACTION_STOP_SERVICE))
                 {
                     Log.Info(TAG, "Stop Service called.");
-                    
+
                     try
                     {
                         if (timer != null)
@@ -94,6 +95,20 @@ namespace GrinPlusPlus.Droid
                 {
                     Log.Info(TAG, "Restart Grin Node called.");
 
+                    InitializeNodeService();
+                }
+                else if (intent.Action.Equals(Constants.ACTION_DELETE_PEERS_FOLDER))
+                {
+                    Log.Info(TAG, "Delete Peers Folder called.");
+                    var peersFolderPath = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), ".GrinPP/MAINNET/NODE/DB/PEERS");
+                    if (NodeControl.DeleteNodeDataFolder(peersFolderPath))
+                    {
+                        Log.Info(TAG, "Peers folder is deleted.");
+                    }
+                    else
+                    {
+                        Log.Info(TAG, "Peers folder could not be deleted!");
+                    }
                     InitializeNodeService();
                 }
             }
@@ -127,7 +142,8 @@ namespace GrinPlusPlus.Droid
                     {
                         NodeControl.StopTor();
                     }
-                } catch { }
+                }
+                catch { }
 
                 Log.Error(TAG, ex.Message);
             }
@@ -162,8 +178,9 @@ namespace GrinPlusPlus.Droid
                 {
                     try
                     {
-                        label = $"{label} ({string.Format($"{ percentage * 100:F}")}%)";
-                    } catch { }
+                        label = $"{label} ({string.Format($"{percentage * 100:F}")}%)";
+                    }
+                    catch { }
                 }
 
                 RegisterForegroundService(label);
@@ -191,13 +208,14 @@ namespace GrinPlusPlus.Droid
             try
             {
                 NodeControl.StopNode();
-            } catch { }
+            }
+            catch { }
             try
             {
                 NodeControl.StopTor();
             }
             catch { }
-            
+
             if (timer != null)
             {
                 timer.Stop();
@@ -220,6 +238,7 @@ namespace GrinPlusPlus.Droid
                 .SetOngoing(true)
                 .AddAction(BuildRestartNodeAction())
                 .AddAction(BuildStopServiceAction())
+                .AddAction(BuildDeleteNodeFoldersAction())
                 .Build();
 
             // Enlist this instance of the service as a foreground service
@@ -240,9 +259,8 @@ namespace GrinPlusPlus.Droid
             channel.EnableLights(false);
             channel.SetSound(null, null);
             channel.EnableVibration(false);
-            
-            manager.CreateNotificationChannel(channel);
 
+            manager.CreateNotificationChannel(channel);
             channelInitialized = true;
         }
 
@@ -268,9 +286,9 @@ namespace GrinPlusPlus.Droid
 		Notification.Action BuildRestartNodeAction()
         {
             var action = "Run";
-            
+
             if (NodeControl.IsNodeRunning()) return null;
-            
+
             var restartIntent = new Intent(this, GetType());
             restartIntent.SetAction(Constants.ACTION_RESTART_NODE);
             var restartTimerPendingIntent = PendingIntent.GetService(this, 0, restartIntent, PendingIntentFlags.Immutable);
@@ -298,6 +316,20 @@ namespace GrinPlusPlus.Droid
             var builder = new Notification.Action.Builder(null,
                                                           "Close",
                                                           stopServicePendingIntent);
+            return builder.Build();
+        }
+
+
+        Notification.Action BuildDeleteNodeFoldersAction()
+        {
+            if (!NodeControl.IsNodeRunning()) return null;
+
+            var deletePeersFolderIntent = new Intent(this, GetType());
+            deletePeersFolderIntent.SetAction(Constants.ACTION_DELETE_PEERS_FOLDER);
+            var deletePeersFolderPendingIntent = PendingIntent.GetService(this, 0, deletePeersFolderIntent, PendingIntentFlags.Immutable);
+            var builder = new Notification.Action.Builder(null,
+                                                          "Delete Peers",
+                                                          deletePeersFolderPendingIntent);
             return builder.Build();
         }
     }
